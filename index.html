@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flores Amarillas para Luisa</title>
+    <style>
+        /* Reseteamos los márgenes para que el canvas ocupe toda la pantalla */
+        body { margin: 0; overflow: hidden; background-color: #050505; }
+        canvas { display: block; }
+        
+        /* Estilos del texto flotante */
+        #mensaje {
+            position: absolute;
+            top: 15%;
+            width: 100%;
+            text-align: center;
+            color: #ffd700;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 3.5rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-shadow: 2px 2px 15px rgba(0, 0, 0, 0.9);
+            pointer-events: none; /* Clave: deja que el ratón controle la cámara a través de las letras */
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- Este es el texto flotante -->
+    <div id="mensaje">
+        Feliz dia lou espero que te gusten 😊
+    </div>
+
+    <!-- Importamos Three.js, OrbitControls y GLTFLoader desde un CDN -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        // 1. ESCENA, CÁMARA Y RENDERIZADOR
+        const scene = new THREE.Scene();
+        
+        // Cámara perspectiva (Field of View, Aspect Ratio, Near, Far)
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 2, 5);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true }); // Antialias suaviza los bordes
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.toneMapping = THREE.ACESFilmicToneMapping; // Mapeo de tonos hiperrealista
+        renderer.toneMappingExposure = 1.2;
+        document.body.appendChild(renderer.domElement);
+
+        // 2. CONTROLES DE CÁMARA
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true; // Movimiento fluido
+        controls.dampingFactor = 0.05;
+
+        // 3. ILUMINACIÓN
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffd700, 2);
+        directionalLight.position.set(5, 5, 5);
+        scene.add(directionalLight);
+    
+        // 4. CARGAR LOS MODELOS 3D
+        const loader = new GLTFLoader();
+        let florero; 
+
+        // --- Cargar el Paisaje (Jardín) ---
+        loader.load(
+            'sunflower_field.glb',
+            function (gltf) {
+                const paisaje = gltf.scene;
+                
+                // Reducimos drásticamente la escala porque el modelo original es inmenso
+                paisaje.scale.set(0.0005, 0.0005, 0.0005); 
+                
+                // Lo ubicamos abajo y hacia el fondo
+                paisaje.position.set(0, -2, -2); 
+
+                paisaje.traverse((node) => {
+                    if (node.isMesh) {
+                        node.castShadow = true;
+                        node.receiveShadow = true;
+                    }
+                });
+                scene.add(paisaje);
+            },
+            undefined,
+            function (error) { console.error('Error al cargar el paisaje:', error); }
+        );
+
+        // --- Cargar el Florero (Rosas) ---
+        loader.load(
+            'bouquet_of_yellow_roses.glb',
+            function (gltf) {
+                florero = gltf.scene;
+                
+                // 1. Florero Principal (El que va a girar cerca de la cámara)
+                florero.scale.set(3, 3, 3); 
+                florero.position.set(-1, -1.5, 1); 
+                florero.traverse((node) => {
+                    if (node.isMesh) {
+                        node.castShadow = true;
+                        node.receiveShadow = true;
+                    }
+                });
+                scene.add(florero);
+
+                // 2. Segundo Florero (El que va integrado en el jardín)
+                const floreroJardin = florero.clone(); // Creamos la copia mágica
+                floreroJardin.scale.set(1, 1, 1); // Un tamaño más normal para el suelo
+                
+                // Posición ajustada por ti
+                floreroJardin.position.set(-0.4, -1.5, -2.8); 
+                
+                scene.add(floreroJardin);
+            },
+            undefined,
+            function (error) { console.error('Error al cargar el florero:', error); }
+        );
+
+        // 5. ANIMACIÓN Y BUCLE DE RENDERIZADO
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Rotar solo el florero suavemente
+            if (florero) {
+                //florero.rotation.y += 0.002;
+            }
+
+            controls.update(); 
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // 6. ADAPTACIÓN AL REDIMENSIONAR LA VENTANA
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
